@@ -1,0 +1,83 @@
+# ==========================================
+# Wirtualne środowiska i konfiguracja
+# ==========================================
+venv/
+.venv/
+env/
+.env
+ENV/
+
+# ==========================================
+# Python - cache, build i pliki tymczasowe
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+
+# ==========================================
+# Jupyter Notebook
+# ==========================================
+.ipynb_checkpoints/
+
+# ==========================================
+# PyTorch i modele Machine Learning
+# ==========================================
+# Wagi modeli i zapisane tensory
+*.pt
+*.pth
+*.onnx
+*.weights
+
+# ==========================================
+# PyTorch Lightning
+# ==========================================
+# Domyślny folder z logami i checkpointami (*.ckpt)
+lightning_logs/
+*.ckpt
+
+# ==========================================
+# Weights & Biases (wandb)
+# ==========================================
+# Folder z lokalnymi logami i synchronizacją
+wandb/
+
+# ==========================================
+# Dane (Pandas, Numpy, ogólne)
+# ==========================================
+# Zignoruj pobrane i przetworzone dane (żeby nie zapchać repozytorium)
+data/
+datasets/
+*.csv
+*.tsv
+*.npy
+*.npz
+*.parquet
+*.h5
+*.hdf5
+
+# ==========================================
+# Wygenerowane wykresy i grafiki (Matplotlib)
+# ==========================================
+# Foldery na wykresy
+plots/
+figures/
+# Pliki graficzne (zakładając, że są generowane przez kod)
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.svg
+
+# ==========================================
+# Pliki systemowe i edytory kodu (IDE)
+# ==========================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
