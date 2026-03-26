@@ -50,7 +50,7 @@ wandb/
 # Dane (Pandas, Numpy, ogólne)
 # ==========================================
 # Zignoruj pobrane i przetworzone dane (żeby nie zapchać repozytorium)
-data/
+dataset/
 datasets/
 *.csv
 *.tsv
