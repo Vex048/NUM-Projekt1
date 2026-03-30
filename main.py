@@ -11,66 +11,72 @@ from src.models.baseline_classifier import BaselineClassifier
 
 
 def load_config(config_path: str) -> dict:
-    with open(config_path, 'r', encoding='utf-8') as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def get_datamodule(config: dict):
-    data_cfg = config.get('data', {})
-    if data_cfg.get('name') == 'ham10000':
+    data_cfg = config.get("data", {})
+    if data_cfg.get("name") == "ham10000":
         return HAM10000DataModule(
-            data_dir=data_cfg.get('data_dir', './dataset/archive'),
-            batch_size=data_cfg.get('batch_size', 64),
-            num_workers=data_cfg.get('num_workers', 4)
+            data_dir=data_cfg.get("data_dir", "./dataset/archive"),
+            batch_size=data_cfg.get("batch_size", 64),
+            num_workers=data_cfg.get("num_workers", 4),
         )
     else:
         raise ValueError(f"Unknown dataset: {data_cfg.get('name')}")
 
 
 def get_model(config: dict, class_names: list):
-    model_cfg = config.get('model', {})
-    model_name = model_cfg.get('name')
-    num_classes = model_cfg.get('num_classes', 10)
+    model_cfg = config.get("model", {})
+    model_name = model_cfg.get("name")
+    num_classes = model_cfg.get("num_classes", 10)
 
+    lr = model_cfg.get("lr", 1e-3)
+    weight_decay = model_cfg.get("weight_decay", 1e-4)
+    optimizer = model_cfg.get("optimizer", "adam")
+    scheduler = model_cfg.get("scheduler", "cosine")
 
-    lr = model_cfg.get('lr', 1e-3)
-    weight_decay = model_cfg.get('weight_decay', 1e-4)
-    optimizer = model_cfg.get('optimizer', 'adam')
-    scheduler = model_cfg.get('scheduler', 'cosine')
-    
-    if model_name == 'resnet':
-        pretrained = model_cfg.get('pretrained', True)
+    if model_name == "resnet":
+        pretrained = model_cfg.get("pretrained", True)
         return ResNetClassifier(
-            num_classes=num_classes, 
-            lr=lr, 
+            num_classes=num_classes,
+            lr=lr,
             weight_decay=weight_decay,
             optimizer_name=optimizer,
             scheduler_name=scheduler,
             pretrained=pretrained,
-            class_names=class_names
+            class_names=class_names,
         )
-    elif model_name == 'baseline':
+    elif model_name == "baseline":
         return BaselineClassifier(
-            num_classes=num_classes, 
-            lr=lr, 
+            num_classes=num_classes,
+            lr=lr,
             weight_decay=weight_decay,
             optimizer_name=optimizer,
             scheduler_name=scheduler,
-            class_names=class_names
+            class_names=class_names,
         )
     else:
         raise ValueError(f"Nieznany model: {model_name}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Trenowanie klasyfikacji obrazów (PyTorch Lightning)")
-    parser.add_argument('--config', type=str, default='configs/default.yaml', help='Ścieżka do pliku konfiguracyjnego YAML')
+    parser = argparse.ArgumentParser(
+        description="Trenowanie klasyfikacji obrazów (PyTorch Lightning)"
+    )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="configs/default.yaml",
+        help="Ścieżka do pliku konfiguracyjnego YAML",
+    )
     args = parser.parse_args()
 
     if not os.path.exists(args.config):
         print(f"Błąd: Plik konfiguracyjny {args.config} nie istnieje!")
         return
-        
+
     config = load_config(args.config)
 
     # Init wandb logger
@@ -78,14 +84,14 @@ def main():
         project=config.get("project_name", "skin-lesion-classification"),
         name=config.get("run_name", "experiment"),
         log_model="all",
-        config=config 
+        config=config,
     )
     # Init datamodule
     datamodule = get_datamodule(config)
-    datamodule.setup(stage='fit')
-    
-    class_names = getattr(datamodule, 'classes', [str(i) for i in range(10)])
-    config['model']['num_classes'] = len(class_names)
+    datamodule.setup(stage="fit")
+
+    class_names = getattr(datamodule, "classes", [str(i) for i in range(10)])
+    config["model"]["num_classes"] = len(class_names)
 
     # Init Torch lightning
     model = get_model(config, class_names)
@@ -93,20 +99,20 @@ def main():
     # Callbacki
     trainer_cfg = config.get("trainer", {})
     model_name = config.get("model", {}).get("name", "model")
-    
+
     checkpoint_callback = ModelCheckpoint(
-        monitor='val_loss',
-        dirpath='./checkpoints',
-        filename=model_name + '-{epoch:02d}-{val_loss:.2f}',
+        monitor="val_loss",
+        dirpath="./checkpoints",
+        filename=model_name + "-{epoch:02d}-{val_loss:.2f}",
         save_top_k=3,
-        mode='min',
+        mode="min",
     )
 
     early_stop_callback = EarlyStopping(
-        monitor='val_loss',
+        monitor="val_loss",
         patience=trainer_cfg.get("patience", 5),
         verbose=True,
-        mode='min'
+        mode="min",
     )
 
     # Init obiektu Trenera
@@ -122,10 +128,11 @@ def main():
 
     # Trening oraz test
     trainer.fit(model, datamodule=datamodule)
-    trainer.test(model, datamodule=datamodule, ckpt_path='best')
+
+    trainer.test(model, datamodule=datamodule, ckpt_path="best")
 
     wandb.finish()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
