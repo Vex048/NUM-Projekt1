@@ -67,9 +67,6 @@ datasets/
 plots/
 figures/
 # Pliki graficzne (zakładając, że są generowane przez kod)
-*.png
-*.jpg
-*.jpeg
 *.pdf
 *.svg
 
