@@ -2,11 +2,13 @@ import os
 import pandas as pd
 from PIL import Image
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 import pytorch_lightning as pl
 from torchvision import transforms
 from sklearn.model_selection import GroupShuffleSplit
 from sklearn.preprocessing import LabelEncoder
+from sklearn.utils.class_weight import compute_class_weight
+import numpy as np
 
 class HAM10000Dataset(Dataset):
     def __init__(self, df: pd.DataFrame, img_dirs: list, transform=None):
@@ -39,24 +41,29 @@ class HAM10000Dataset(Dataset):
         return image, torch.tensor(label, dtype=torch.long)
 
 class HAM10000DataModule(pl.LightningDataModule):
-    def __init__(self, data_dir: str = './dataset/archive', batch_size: int = 64, num_workers: int = 4):
+    def __init__(self, data_dir: str = './dataset/archive', batch_size: int = 64, num_workers: int = 4, use_sampler: bool = False):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.use_sampler = use_sampler
         self.metadata_path = os.path.join(self.data_dir, "HAM10000_metadata.csv")
         self.img_dirs = [
             os.path.join(self.data_dir, "ham10000_images_part_1"),
             os.path.join(self.data_dir, "ham10000_images_part_2")
         ]
         
-        # Klasyczna Transformacja obrazów oraz augmentacja
+        # Silna augmentacja obrazów w celu zapobiegania overfittingowi
         self.train_transform = transforms.Compose([
             transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomRotation(degrees=45),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+            transforms.RandomAffine(degrees=0, translate=(0.1, 0.1), scale=(0.9, 1.1)),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.RandomErasing(p=0.2, scale=(0.02, 0.1))
         ])
         
         self.val_test_transform = transforms.Compose([
@@ -88,6 +95,23 @@ class HAM10000DataModule(pl.LightningDataModule):
         train_df = df.iloc[train_idx]
         temp_df = df.iloc[temp_idx]
 
+        # Calculate class weights for imbalanced dataset based on the training set
+        weights = compute_class_weight(
+            class_weight="balanced", 
+            classes=np.unique(train_df['label']), 
+            y=train_df['label']
+        )
+        self.class_weights = torch.tensor(weights, dtype=torch.float32)
+
+        self.train_sampler = None
+        if self.use_sampler:
+            sample_weights = [weights[label] for label in train_df['label']]
+            self.train_sampler = WeightedRandomSampler(
+                weights=sample_weights,
+                num_samples=len(sample_weights),
+                replacement=True
+            )
+
         gss_val = GroupShuffleSplit(test_size=0.50, n_splits=1, random_state=42)
         val_idx, test_idx = next(gss_val.split(temp_df, groups=temp_df["lesion_id"]))
 
@@ -102,6 +126,8 @@ class HAM10000DataModule(pl.LightningDataModule):
             self.test_dataset = HAM10000Dataset(test_df, self.img_dirs, transform=self.val_test_transform)
 
     def train_dataloader(self):
+        if self.train_sampler:
+            return DataLoader(self.train_dataset, batch_size=self.batch_size, sampler=self.train_sampler, num_workers=self.num_workers)
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
 
     def val_dataloader(self):

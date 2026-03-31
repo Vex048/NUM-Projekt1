@@ -19,10 +19,11 @@ class BaseClassifier(pl.LightningModule):
         optimizer_name: str = "adam",
         scheduler_name: str = "cosine",
         class_names: list = None,
+        class_weights: torch.Tensor = None,
     ):
         super().__init__()
         # Zapisujemy wszystko do logowania w pliku hparams.yaml przez Wandb
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['class_weights'])
         self.num_classes = num_classes
         self.lr = lr
         self.weight_decay = weight_decay
@@ -33,8 +34,11 @@ class BaseClassifier(pl.LightningModule):
         # Na razie klasyczna ufnkcji straty- tu pewnie trzeba będzie coś zmienić, bo są niezbalansowane dane
         # self.criterion = nn.CrossEntropyLoss()
         # Use lossFunction for inbalcaned data classes
-        # WEights need to be tuned - using the amount of the samples in each class as a starting point
-        self.criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0] * num_classes))
+        if class_weights is not None:
+            self.register_buffer('class_weights', class_weights)
+            self.criterion = nn.CrossEntropyLoss(weight=self.class_weights, label_smoothing=0.1)
+        else:
+            self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
 
         # Inicjalizacja metryk
         self.train_acc = torchmetrics.Accuracy(
@@ -153,7 +157,7 @@ class BaseClassifier(pl.LightningModule):
 
         elif self.scheduler_name == "plateau":
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, mode="min", factor=0.5, patience=2, verbose=True
+                optimizer, mode="min", factor=0.5, patience=2
             )
             return {
                 "optimizer": optimizer,

@@ -10,7 +10,7 @@
 # Eksportuj swój klucz do biblioteki Weights & Biases:
 # Odkomentuj i wklej swój klucz jeśli nie był konfigurowany na poziomie globalnym.
 
-CONFIG_PATH=${1:-configs/default.yaml}
+CONFIG_PATH=${1:-configs/official_train.yaml}
 
 if [ ! -f "$CONFIG_PATH" ]; then
     echo "Błąd: Plik konfiguracji $CONFIG_PATH nie istnieje"

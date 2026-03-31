@@ -8,6 +8,8 @@ import os
 from src.data.ham10000_datamodule import HAM10000DataModule
 from src.models.resnet_classifier import ResNetClassifier
 from src.models.baseline_classifier import BaselineClassifier
+from src.models.efficientnet_classifier import EfficientNetClassifier
+from src.models.densenet_classifier import DenseNetClassifier
 
 
 def load_config(config_path: str) -> dict:
@@ -17,17 +19,21 @@ def load_config(config_path: str) -> dict:
 
 def get_datamodule(config: dict):
     data_cfg = config.get("data", {})
+    strategy = data_cfg.get("class_imbalance_strategy", "weights")
+    use_sampler = strategy in ["sampler", "both"]
+    
     if data_cfg.get("name") == "ham10000":
         return HAM10000DataModule(
             data_dir=data_cfg.get("data_dir", "./dataset/archive"),
             batch_size=data_cfg.get("batch_size", 64),
             num_workers=data_cfg.get("num_workers", 4),
+            use_sampler=use_sampler,
         )
     else:
         raise ValueError(f"Unknown dataset: {data_cfg.get('name')}")
 
 
-def get_model(config: dict, class_names: list):
+def get_model(config: dict, class_names: list, class_weights: torch.Tensor = None):
     model_cfg = config.get("model", {})
     model_name = model_cfg.get("name")
     num_classes = model_cfg.get("num_classes", 10)
@@ -47,6 +53,7 @@ def get_model(config: dict, class_names: list):
             scheduler_name=scheduler,
             pretrained=pretrained,
             class_names=class_names,
+            class_weights=class_weights,
         )
     elif model_name == "baseline":
         return BaselineClassifier(
@@ -56,6 +63,33 @@ def get_model(config: dict, class_names: list):
             optimizer_name=optimizer,
             scheduler_name=scheduler,
             class_names=class_names,
+            class_weights=class_weights,
+        )
+    elif model_name == "efficientnet":
+        pretrained = model_cfg.get("pretrained", True)
+        freeze_backbone = model_cfg.get("freeze_backbone", False)
+        return EfficientNetClassifier(
+            num_classes=num_classes,
+            lr=lr,
+            weight_decay=weight_decay,
+            optimizer_name=optimizer,
+            scheduler_name=scheduler,
+            pretrained=pretrained,
+            class_names=class_names,
+            class_weights=class_weights,
+            freeze_backbone=freeze_backbone,
+        )
+    elif model_name == "densenet":
+        pretrained = model_cfg.get("pretrained", True)
+        return DenseNetClassifier(
+            num_classes=num_classes,
+            lr=lr,
+            weight_decay=weight_decay,
+            optimizer_name=optimizer,
+            scheduler_name=scheduler,
+            pretrained=pretrained,
+            class_names=class_names,
+            class_weights=class_weights,
         )
     else:
         raise ValueError(f"Nieznany model: {model_name}")
@@ -68,7 +102,7 @@ def main():
     parser.add_argument(
         "--config",
         type=str,
-        default="configs/default.yaml",
+        default="configs/official_train.yaml",
         help="Ścieżka do pliku konfiguracyjnego YAML",
     )
     args = parser.parse_args()
@@ -82,7 +116,7 @@ def main():
     # Init wandb logger
     wandb_logger = WandbLogger(
         project=config.get("project_name", "skin-lesion-classification"),
-        name=config.get("run_name", "experiment"),
+        name=config.get("run_name", "efficientnet-ham10000-adamw"),
         log_model="all",
         config=config,
     )
@@ -91,17 +125,24 @@ def main():
     datamodule.setup(stage="fit")
 
     class_names = getattr(datamodule, "classes", [str(i) for i in range(10)])
+    
+    strategy = config.get("data", {}).get("class_imbalance_strategy", "weights")
+    if strategy in ["weights", "both"]:
+        class_weights = getattr(datamodule, "class_weights", None)
+    else:
+        class_weights = None
+        
     config["model"]["num_classes"] = len(class_names)
 
     # Init Torch lightning
-    model = get_model(config, class_names)
+    model = get_model(config, class_names, class_weights)
 
     # Callbacki
     trainer_cfg = config.get("trainer", {})
     model_name = config.get("model", {}).get("name", "model")
 
     checkpoint_callback = ModelCheckpoint(
-        monitor="val_loss",
+        monitor="val_loss",   
         dirpath="./checkpoints",
         filename=model_name + "-{epoch:02d}-{val_loss:.2f}",
         save_top_k=3,

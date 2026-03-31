@@ -1,0 +1,29 @@
+project_name: "skin-lesion-classification"
+run_name: "efficientnet-ham10000-adamW"
+
+data:
+  name: "ham10000"
+  data_dir: "./dataset/archive"
+  batch_size: 32
+  num_workers: 4
+  class_imbalance_strategy: "weights"
+
+model:
+  name: "efficientnet"
+  num_classes: 7
+  pretrained: true  
+
+  lr: 0.0005
+  weight_decay: 0.05
+  optimizer: "adamw"        
+  scheduler: "plateau"   
+  freeze_backbone: false
+
+trainer:
+  max_epochs: 50
+  accelerator: "auto"
+  devices: 1
+  
+  precision: "16-mixed"    
+  patience: 10           
+  gradient_clip_val: 0.5   

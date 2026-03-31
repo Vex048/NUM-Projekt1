@@ -1,11 +1,11 @@
-import torch.nn as nn
-from torchvision.models import resnet18, ResNet18_Weights
-from src.models.base_classifier import BaseClassifier
 import torch
+import torch.nn as nn
+from torchvision.models import densenet121, DenseNet121_Weights
+from src.models.base_classifier import BaseClassifier
 
-class ResNetClassifier(BaseClassifier):
+class DenseNetClassifier(BaseClassifier):
     """
-    Resnet18
+    DenseNet-121 Classifier
     """
     def __init__(
         self, 
@@ -28,9 +28,9 @@ class ResNetClassifier(BaseClassifier):
             class_weights=class_weights
         )
         
-        weights = ResNet18_Weights.DEFAULT if pretrained else None
-        self.model = resnet18(weights=weights)
+        weights = DenseNet121_Weights.DEFAULT if pretrained else None
+        self.model = densenet121(weights=weights)
         
-        # Wymiana ostatniej warstwy na naszą klasę
-        num_ftrs = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_ftrs, num_classes)
+        # Wymiana ostatniej warstwy na klasyfikator dla naszych klas
+        num_ftrs = self.model.classifier.in_features
+        self.model.classifier = nn.Linear(num_ftrs, num_classes)

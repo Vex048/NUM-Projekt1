@@ -6,6 +6,7 @@ data:
   data_dir: "./dataset/archive"
   batch_size: 64
   num_workers: 4
+  class_imbalance_strategy: "weights" # "weights", "sampler", "none", "both"
 
 model:
   name: "resnet"
