@@ -1,0 +1,29 @@
+project_name: "skin-lesion-classification"
+run_name: "efficientnet-ham10000-adamW-optuna"
+
+data:
+  name: "ham10000"
+  data_dir: "./dataset/archive"
+  batch_size: 64
+  num_workers: 4
+  class_imbalance_strategy: "sampler"
+
+model:
+  name: "efficientnet"
+  num_classes: 7
+  pretrained: true  
+
+  lr: 0.00001
+  weight_decay: 0.1
+  optimizer: "adamw"        
+  scheduler: "plateau"   
+  freeze_backbone: true
+
+trainer:
+  max_epochs: 10
+  accelerator: "auto"
+  devices: 1
+  
+  precision: "16-mixed"    
+  patience: 5           
+  gradient_clip_val: 0.5   

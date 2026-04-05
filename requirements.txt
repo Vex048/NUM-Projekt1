@@ -9,3 +9,6 @@ seaborn
 wandb
 tqdm
 jupyter
+pyyaml
+torchmetrics
+optuna

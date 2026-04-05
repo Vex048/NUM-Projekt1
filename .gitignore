@@ -50,7 +50,7 @@ wandb/
 # Dane (Pandas, Numpy, ogólne)
 # ==========================================
 # Zignoruj pobrane i przetworzone dane (żeby nie zapchać repozytorium)
-data/
+dataset/
 datasets/
 *.csv
 *.tsv
@@ -67,9 +67,6 @@ datasets/
 plots/
 figures/
 # Pliki graficzne (zakładając, że są generowane przez kod)
-*.png
-*.jpg
-*.jpeg
 *.pdf
 *.svg
 

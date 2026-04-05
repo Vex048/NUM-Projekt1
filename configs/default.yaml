@@ -1,0 +1,29 @@
+project_name: "skin-lesion-classification"
+run_name: "resnet18-ham10000-adam"
+
+data:
+  name: "ham10000"
+  data_dir: "./dataset/archive"
+  batch_size: 64
+  num_workers: 4
+  class_imbalance_strategy: "weights" # "weights", "sampler", "none", "both"
+
+model:
+  name: "resnet"
+  num_classes: 7
+  pretrained: true  # Czy bierzemy pretrenowane wagi z imagenutu
+  
+  # Hyperparametry
+  lr: 0.0005
+  weight_decay: 0.0001
+  optimizer: "adam"        
+  scheduler: "cosine"   
+
+trainer:
+  max_epochs: 20
+  accelerator: "auto"
+  devices: 1
+  
+  precision: "16-mixed"    
+  patience: 5              
+  gradient_clip_val: 0.5   # Obcinanie gradientów, żeby model się nie rozjeżdżał - do potestowania
