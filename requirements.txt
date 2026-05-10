@@ -12,3 +12,6 @@ jupyter
 pyyaml
 torchmetrics
 optuna
+bentoml
+requests
+pillow

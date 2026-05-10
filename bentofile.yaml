@@ -1,0 +1,11 @@
+service: "bentoml_service:Ham10000Service"
+labels:
+  project: "ham10000"
+  stage: "inference"
+include:
+  - "bentoml_service.py"
+  - "src/**"
+  - "artifacts/best.ckpt"
+  - "dataset/archive/HAM10000_metadata.csv"
+python:
+  requirements_txt: "requirements.txt"
