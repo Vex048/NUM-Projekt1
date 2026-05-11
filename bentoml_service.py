@@ -101,8 +101,30 @@ def resolve_checkpoint() -> Tuple[str, Optional[float]]:
     if os.path.exists(CHECKPOINT_PATH):
         return CHECKPOINT_PATH, extract_val_loss(CHECKPOINT_PATH)
 
-    best_path, best_loss = find_best_checkpoint(CHECKPOINTS_DIR)
-    return best_path, best_loss
+    artifacts_dir = os.path.dirname(CHECKPOINT_PATH) or "./artifacts"
+    if os.path.isdir(artifacts_dir):
+        candidates = glob.glob(os.path.join(artifacts_dir, "*.ckpt"))
+        if candidates:
+            candidates_with_loss = [
+                (path, extract_val_loss(path)) for path in candidates
+            ]
+            candidates_with_loss = [
+                (path, loss) for path, loss in candidates_with_loss if loss is not None
+            ]
+            if candidates_with_loss:
+                best_path, best_loss = min(candidates_with_loss, key=lambda item: item[1])
+                return best_path, best_loss
+            newest_path = max(candidates, key=os.path.getmtime)
+            return newest_path, None
+
+    if os.path.isdir(CHECKPOINTS_DIR):
+        best_path, best_loss = find_best_checkpoint(CHECKPOINTS_DIR)
+        return best_path, best_loss
+
+    raise FileNotFoundError(
+        "No checkpoint found. Set CHECKPOINT_PATH or MODEL_URL, or include a .ckpt file "
+        "under ./artifacts or ./checkpoints in the Bento."
+    )
 
 
 def load_model() -> Tuple[torch.nn.Module, List[str], str, Optional[float]]:
