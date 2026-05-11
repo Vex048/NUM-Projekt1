@@ -4,8 +4,8 @@ labels:
   stage: "inference"
 include:
   - "bentoml_service.py"
-  - "src/**"
-  - "artifacts/best.ckpt"
-  - "dataset/archive/HAM10000_metadata.csv"
+  - "src/"
+  - "artifacts/"
+  - "dataset/"
 python:
   requirements_txt: "requirements.txt"

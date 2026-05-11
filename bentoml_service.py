@@ -16,11 +16,22 @@ from src.models.efficientnet_classifier import EfficientNetClassifier
 from src.models.densenet_classifier import DenseNetClassifier
 from src.models.baseline_classifier import BaselineClassifier
 
-CHECKPOINTS_DIR = os.getenv("CHECKPOINTS_DIR", "./checkpoints")
-CHECKPOINT_PATH = os.getenv("CHECKPOINT_PATH", "./artifacts/best.ckpt")
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+if os.path.basename(SCRIPT_DIR) == "src":
+    ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+else:
+    ROOT_DIR = SCRIPT_DIR
+
+
+CHECKPOINTS_DIR = os.getenv("CHECKPOINTS_DIR", os.path.join(ROOT_DIR, "checkpoints"))
+CHECKPOINT_PATH = os.getenv(
+    "CHECKPOINT_PATH", os.path.join(ROOT_DIR, "artifacts", "best.ckpt")
+)
 MODEL_URL = os.getenv("MODEL_URL")
 MODEL_NAME = os.getenv("MODEL_NAME")
-DATA_DIR = os.getenv("DATA_DIR", "./dataset/archive")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(ROOT_DIR, "dataset", "archive"))
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 MODEL_CLASS_BY_PREFIX = {
@@ -112,7 +123,9 @@ def resolve_checkpoint() -> Tuple[str, Optional[float]]:
                 (path, loss) for path, loss in candidates_with_loss if loss is not None
             ]
             if candidates_with_loss:
-                best_path, best_loss = min(candidates_with_loss, key=lambda item: item[1])
+                best_path, best_loss = min(
+                    candidates_with_loss, key=lambda item: item[1]
+                )
                 return best_path, best_loss
             newest_path = max(candidates, key=os.path.getmtime)
             return newest_path, None
