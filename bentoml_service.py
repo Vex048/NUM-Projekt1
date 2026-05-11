@@ -16,13 +16,7 @@ from src.models.efficientnet_classifier import EfficientNetClassifier
 from src.models.densenet_classifier import DenseNetClassifier
 from src.models.baseline_classifier import BaselineClassifier
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-if os.path.basename(SCRIPT_DIR) == "src":
-    ROOT_DIR = os.path.dirname(SCRIPT_DIR)
-else:
-    ROOT_DIR = SCRIPT_DIR
+ROOT_DIR = os.getcwd()
 
 
 CHECKPOINTS_DIR = os.getenv("CHECKPOINTS_DIR", os.path.join(ROOT_DIR, "checkpoints"))
@@ -82,14 +76,8 @@ def infer_model_name(checkpoint_path: str) -> str:
 
 
 def load_class_names_from_metadata(data_dir: str) -> Optional[List[str]]:
-    metadata_path = os.path.join(data_dir, "HAM10000_metadata.csv")
-    if not os.path.exists(metadata_path):
-        return None
-
-    df = pd.read_csv(metadata_path)
-    label_encoder = LabelEncoder()
-    label_encoder.fit(df["dx"])
-    return label_encoder.classes_.tolist()
+    # HAM10000 classes sorted alphabetically (exactly how LabelEncoder does it)
+    return ["akiec", "bcc", "bkl", "df", "mel", "nv", "vasc"]
 
 
 def build_preprocess() -> transforms.Compose:
